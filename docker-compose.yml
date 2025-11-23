@@ -1,0 +1,172 @@
+networks:
+  trabalho_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+
+volumes:
+  db_data:
+    driver: local
+  dns_data:
+    driver: local
+
+services:
+  # ============================================
+  # BANCO DE DADOS (1 servidor)
+  # ============================================
+  database:
+    image: postgres:15-alpine
+    container_name: trabalho-database
+    hostname: database-server
+    networks:
+      trabalho_net:
+        ipv4_address: 172.20.0.20
+    environment:
+      POSTGRES_DB: meutrabalho
+      POSTGRES_USER: trabalho
+      POSTGRES_PASSWORD: trabalho123
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trabalho"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================
+  # SERVIDORES HTTP (3 servidores idênticos)
+  # ============================================
+  http1:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    container_name: trabalho-http1
+    hostname: http1-server
+    networks:
+      trabalho_net:
+        ipv4_address: 172.20.0.10
+    environment:
+      - SERVER_NAME=http1-server
+      - DB_HOST=172.20.0.20
+      - DB_PORT=5432
+      - DB_NAME=meutrabalho
+      - DB_USER=trabalho
+      - DB_PASSWORD=trabalho123
+      - FLASK_ENV=production
+    volumes:
+      - ./frontend:/app/frontend:ro
+    ports:
+      - "5000:5000"  # Porta 5000 no host
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  http2:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    container_name: trabalho-http2
+    hostname: http2-server
+    networks:
+      trabalho_net:
+        ipv4_address: 172.20.0.11
+    environment:
+      - SERVER_NAME=http2-server
+      - DB_HOST=172.20.0.20
+      - DB_PORT=5432
+      - DB_NAME=meutrabalho
+      - DB_USER=trabalho
+      - DB_PASSWORD=trabalho123
+      - FLASK_ENV=production
+    volumes:
+      - ./frontend:/app/frontend:ro
+    ports:
+      - "5001:5000"  # Porta 5001 no host
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  http3:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    container_name: trabalho-http3
+    hostname: http3-server
+    networks:
+      trabalho_net:
+        ipv4_address: 172.20.0.12
+    environment:
+      - SERVER_NAME=http3-server
+      - DB_HOST=172.20.0.20
+      - DB_PORT=5432
+      - DB_NAME=meutrabalho
+      - DB_USER=trabalho
+      - DB_PASSWORD=trabalho123
+      - FLASK_ENV=production
+    volumes:
+      - ./frontend:/app/frontend:ro
+    ports:
+      - "5002:5000"  # Porta 5002 no host
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ============================================
+  # SERVIDOR DNS (1 servidor)
+  # ============================================
+  dns:
+    build:
+      context: ./dns
+      dockerfile: Dockerfile
+    container_name: trabalho-dns
+    hostname: dns-server
+    networks:
+      trabalho_net:
+        ipv4_address: 172.20.0.5
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+      - "953:953/tcp"
+    volumes:
+      - dns_data:/var/cache/bind
+      - ./dns/named.conf:/etc/bind/named.conf:ro
+      - ./dns/db.meutrabalho.com.br:/etc/bind/db.meutrabalho.com.br:ro
+      - ./dns/db.20.172:/etc/bind/db.20.172:ro
+    depends_on:
+      - http1
+      - http2
+      - http3
+    restart: unless-stopped
+    cap_add:
+      - NET_BIND_SERVICE
+    command: ["named", "-g", "-c", "/etc/bind/named.conf", "-u", "bind"]
+

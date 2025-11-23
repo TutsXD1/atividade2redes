@@ -1,0 +1,22 @@
+; Zona reversa para 172.20.0.0/16
+; Opcional - para resolução reversa
+
+$TTL 60
+
+@       IN      SOA     dns-server.meutrabalho.com.br. admin.meutrabalho.com.br. (
+                        2024010101
+                        3600
+                        1800
+                        604800
+                        60
+                        )
+
+        IN      NS      dns-server.meutrabalho.com.br.
+
+; PTR Records (resolução reversa)
+5       IN      PTR     dns-server.meutrabalho.com.br.
+10      IN      PTR     http1-server.meutrabalho.com.br.
+11      IN      PTR     http2-server.meutrabalho.com.br.
+12      IN      PTR     http3-server.meutrabalho.com.br.
+20      IN      PTR     database-server.meutrabalho.com.br.
+
