@@ -22,9 +22,9 @@ Aplicação web distribuída implementada com **Docker Compose** contendo **5 se
 ## 🏗️ Arquitetura
 
 ### Topologia de Rede
+<img width="691" height="452" alt="image" src="https://github.com/user-attachments/assets/92af168a-8481-45f8-b9a2-6e7a34788340" />
 
 ```
-<img width="691" height="452" alt="image" src="https://github.com/user-attachments/assets/979a0e7b-4e19-4048-893e-e2c9e49dbe94" />
 
                     [Cliente/Browser]
                            |
