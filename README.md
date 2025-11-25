@@ -24,6 +24,8 @@ Aplicação web distribuída implementada com **Docker Compose** contendo **5 se
 ### Topologia de Rede
 
 ```
+<img width="691" height="452" alt="image" src="https://github.com/user-attachments/assets/979a0e7b-4e19-4048-893e-e2c9e49dbe94" />
+
                     [Cliente/Browser]
                            |
                            | www.meutrabalho.com.br
